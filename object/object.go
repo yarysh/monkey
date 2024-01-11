@@ -8,6 +8,8 @@ import (
 	"github.com/yarysh/monkey/ast"
 )
 
+type BuiltinFunction func(args ...Object) Object
+
 type ObjectType string
 
 const (
@@ -18,7 +20,20 @@ const (
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	FUNCTION_OBJ     = "FUNCTION"
 	STRING_OBJ       = "STRING"
+	BUILTIN_OBJ      = "BUILTIN"
 )
+
+type Builtin struct {
+	Fn BuiltinFunction
+}
+
+func (b *Builtin) Type() ObjectType {
+	return BUILTIN_OBJ
+}
+
+func (b *Builtin) Inspect() string {
+	return "builtin function"
+}
 
 type Function struct {
 	Parameters []*ast.Identifier
