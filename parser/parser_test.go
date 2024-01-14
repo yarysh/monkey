@@ -156,6 +156,29 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	}
 }
 
+func TestParsingArrayLiterals(t *testing.T) {
+	input := "[1, 2 * 2, 3 + 3]"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	array, ok := stmt.Expression.(*ast.ArrayLiteral)
+	if !ok {
+		t.Fatalf("exp not ast.ArrayLiteral. got=%T", stmt.Expression)
+	}
+
+	if got, want := len(array.Elements), 3; got != want {
+		t.Fatalf("len(array.Elements)=%d, want=%d", got, want)
+	}
+
+	testIntegerLiteral(t, array.Elements[0], 1)
+	testInfixExpression(t, array.Elements[1], 2, "*", 2)
+	testInfixExpression(t, array.Elements[2], 3, "+", 3)
+}
+
 func TestParsingPrefixExpressions(t *testing.T) {
 	prefixTests := []struct {
 		input    string
@@ -236,6 +259,29 @@ func TestParsingInfixExpressions(t *testing.T) {
 		}
 
 		testInfixExpression(t, stmt.Expression, tt.leftValue, tt.operator, tt.rightValue)
+	}
+}
+
+func TestParsingIndexExpression(t *testing.T) {
+	input := "myArray[1 + 1]"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	indexExp, ok := stmt.Expression.(*ast.IndexExpression)
+	if !ok {
+		t.Fatalf("exp not *ast.IndexExpression. got=%T", stmt.Expression)
+	}
+
+	if !testIdentifier(t, indexExp.Left, "myArray") {
+		return
+	}
+
+	if !testInfixExpression(t, indexExp.Index, 1, "+", 1) {
+		return
 	}
 }
 
@@ -367,6 +413,14 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"add(a + b + c * d / f + g)",
 			"add((((a + b) + ((c * d) / f)) + g))",
 		},
+		{
+			"a * [1, 2, 3, 4][b * c] * d",
+			"((a * ([1, 2, 3, 4][(b * c)])) * d)",
+		},
+		{
+			"add(a * b[2], b[1], 2 * [1, 2][1])",
+			"add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+		},
 	}
 
 	for _, tt := range tests {
@@ -376,7 +430,7 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		checkParserErrors(t, p)
 
 		if got, want := program.String(), tt.expected; got != want {
-			t.Fatalf("exprected=%q, want=%q", got, want)
+			t.Errorf("want=%q, got=%q", want, got)
 		}
 	}
 }

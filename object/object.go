@@ -13,6 +13,7 @@ type BuiltinFunction func(args ...Object) Object
 type ObjectType string
 
 const (
+	ARRAY_OBJ        = "ARRAY"
 	BOOLEAN_OBJ      = "BOOLEAN"
 	ERROR_OBJ        = "ERROR"
 	INTEGER_OBJ      = "INTEGER"
@@ -22,6 +23,29 @@ const (
 	STRING_OBJ       = "STRING"
 	BUILTIN_OBJ      = "BUILTIN"
 )
+
+type Array struct {
+	Elements []Object
+}
+
+func (ao *Array) Type() ObjectType {
+	return ARRAY_OBJ
+}
+
+func (ao *Array) Inspect() string {
+	var out bytes.Buffer
+
+	elements := []string{}
+	for _, e := range ao.Elements {
+		elements = append(elements, e.Inspect())
+	}
+
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+
+	return out.String()
+}
 
 type Builtin struct {
 	Fn BuiltinFunction
